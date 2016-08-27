@@ -1,0 +1,497 @@
+<html>
+	<head>
+	<meta charset="utf-8" />
+	<title>ThermoPi</title>	
+		<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Open+Sans">
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+		<link rel="stylesheet" href="thermoPi.css">
+		<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+		<script src="//code.jquery.com/jquery-1.9.1.js"></script>
+		<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+		<script type="text/javascript">
+		
+		var startDate = new Date();
+		var endDate = new Date();
+		var today = new Date();
+		var dateOffset = 0;
+		var chartMode = 0;
+
+		$(document).ready(function()
+		{
+			updateDatePickerLabels();
+			
+			$(window).resize(function(){
+				drawChart();
+			});			
+
+			$("#dayButton").click(function() {
+				console.log("day");
+				dateOffset = 0;
+				chartMode = 0;
+				computeDateInterval(chartMode);
+				drawChart();	
+			});
+			$("#weekButton").click(function() {
+				console.log("week");			
+				dateOffset = 0;
+				chartMode = 1;
+				computeDateInterval(chartMode);
+				drawChart();	
+			});
+			$("#monthButton").click(function() {
+				console.log("month");
+				dateOffset = 0;
+				chartMode = 2;
+				computeDateInterval(chartMode);				
+				drawChart();	
+			});
+			$("#prevButton").click(function() {
+				console.log("prevButton");
+				dateOffset = dateOffset - 1;
+				computeDateInterval(chartMode);				
+				drawChart();	
+			});
+			$("#nextButton").click(function() {
+				console.log("nextButton");
+				dateOffset = dateOffset + 1;
+				computeDateInterval(chartMode);				
+				drawChart();	
+			});			
+			$("#reset").click(function() {
+				console.log("reset");
+				dateOffset = 0;
+				computeDateInterval(chartMode);				
+				drawChart();	
+			});			
+		});
+		
+		// Load the Visualization API and the piechart package.
+		google.load('visualization', '1.0', {'packages':['corechart']});
+		// Set a callback to run when the Google Visualization API is loaded.
+		google.setOnLoadCallback(drawChart);
+
+		var dataArray = [];
+
+		start = 0;
+		
+		today.setHours(0, 0, 0, 0);
+		var day = today.getDay() - start;
+		var date = today.getDate() - day;
+		
+		// Grabbing Start/End Dates
+		startDate = new Date(today.setDate(date));
+		endDate = new Date(today.setDate(date + 6));
+						
+		//load our raw data
+		jQuery.ajaxSetup({async:false});
+		$.get('data.txt', {}, function(data) 
+		{
+			dataArray = createArray(data);
+		});
+		jQuery.ajaxSetup({async:true});
+
+		function computeDateInterval(mode) 
+		{
+			if(mode ==0)
+			{
+				console.log("DAY!");
+				// Grabbing Start/End Dates
+				var today = new Date();
+				today.setTime(today.getTime()+dateOffset*1*24*60*60*1000);
+				
+				startDate = new Date(today);
+				endDate = new Date(today);
+				startDate.setHours(0);
+				endDate.setDate(startDate.getDate() + 1);
+				endDate.setHours(0);				
+			}
+			else if(mode ==1)
+			{
+				console.log("WEEK!");
+				start = 0;
+				var today = new Date();
+				today.setTime(today.getTime()+dateOffset*7*24*60*60*1000);
+
+				today.setHours(0, 0, 0, 0);
+				var day = today.getDay() - start;
+				var date = today.getDate() - day;
+
+				// Grabbing Start/End Dates
+				startDate = new Date(today.setDate(date));
+				today.setTime(today.getTime()+6*24*60*60*1000);
+				endDate = new Date(today);
+			}
+			else if(mode ==2)
+			{
+				console.log("MONTH!");
+				var today = new Date();
+				today.setTime(today.getTime()+dateOffset*30*24*60*60*1000);
+				
+				startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+				endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+			}
+			
+			updateDatePickerLabels();
+	
+			console.log(startDate);
+			console.log(endDate);			
+		}
+		
+		function updateDatePickerLabels()
+		{
+			start = $.datepicker.formatDate('D dd MM, yy', new Date(startDate));
+			end = $.datepicker.formatDate('D dd MM, yy', new Date(endDate));
+			
+			$("#datepicker-start").val(start);
+			$("#datepicker-end").val(end);				
+			$("#datepicker-start").attr('size', $("#datepicker-start").val().length);
+			$("#datepicker-end").attr('size', $("#datepicker-end").val().length);		
+		}
+		
+		// Callback that creates and populates a data table,
+		// instantiates the chart, passes in the data and
+		// draws it.
+		function drawChart() 
+		{
+			//console.log("Updating Chart");
+
+			var dayData = dayArray(startDate, endDate, dataArray);
+
+			var columnsTable = new google.visualization.DataTable();
+			columnsTable.addColumn('number', 'colIndex');
+			columnsTable.addColumn('string', 'colLabel');
+			var initState= {selectedValues: []};
+			// put the columns into this data table (skip column 0)
+			for (var i = 1; i < dayData.getNumberOfColumns(); i++)
+			{
+				columnsTable.addRow([i, dayData.getColumnLabel(i)]);
+				initState.selectedValues.push(dayData.getColumnLabel(i));
+			}
+
+			//Thermostat log graph
+			//--------------------------
+			var options = {
+			title : 'Thermostat log',
+			titleTextStyle: { color: 'white'},
+			vAxis: {title: "Temperature", textStyle:{color: 'white'}, titleTextStyle: { color: 'white'}, gridlines: {count: 10}},
+			hAxis: {title: "Time", textStyle:{color: 'white'}, titleTextStyle: { color: 'white'},
+					viewWindow: { min: startDate, max: endDate},
+					gridlines: { count: -1, units: { days: {format: ['MMM dd']}, hours: {format: ['HH:mm', 'ha']}, } },
+					minorGridlines: { units: {hours: {format: ['hh:mm:ss a', 'ha']}, minutes: {format: ['HH:mm a Z', ':mm']} } },
+					},
+			legend: { textStyle: { color: 'white'}},
+			dateFormat: 'dd.MM hh:mm',
+			seriesType: "line",
+			backgroundColor: 'black',			
+			};
+
+			var tempChart = new google.visualization.ChartWrapper({
+			chartType: 'LineChart',
+			containerId: 'temp_chart',
+			dataTable: dayData,
+			options: options
+			});
+
+			tempChart.draw();
+
+			//Thermostat status graph
+			//--------------------------
+			var statusData = statusArray(startDate, endDate, dataArray)
+			var options = {
+			title : 'Status log',
+			titleTextStyle: { color: 'white'},
+			vAxis: {title: "Temperature", textStyle:{color: 'white'}, titleTextStyle: { color: 'white'}, gridlines: {count: 0}},
+			hAxis: {title: "Time", textStyle:{color: 'white'}, titleTextStyle: { color: 'white'},
+					viewWindow: { min: startDate, max: endDate},
+					gridlines: { count: -1, units: { days: {format: ['MMM dd']}, hours: {format: ['HH:mm', 'ha']}, } },
+					minorGridlines: { units: {hours: {format: ['hh:mm:ss a', 'ha']}, minutes: {format: ['HH:mm a Z', ':mm']} } },
+					},
+			legend: { textStyle: { color: 'white'}},
+			dateFormat: 'dd.MM hh:mm',
+			bar: { groupWidth: '75%' },
+			backgroundColor: 'black',
+			isStacked: 'percent',
+			};
+
+			var statusChart = new google.visualization.ChartWrapper({
+			chartType: 'ColumnChart',
+			containerId: 'status_chart',
+			dataTable: statusData,
+			options: options
+			});
+
+			statusChart.draw();
+			
+		/*
+
+			var options = {
+			title: 'Thermostat Status',
+			titleTextStyle: { color: 'white'},
+			legend: { textStyle: { color: 'white'}},
+			pieHole: 0.4,
+			backgroundColor: 'white',
+			isStacked: true,
+			};
+			
+			var statusSumData = statusSumArray(startDate, endDate, dataArray);
+			var statusSumChart = new google.visualization.PieChart(document.getElementById('status_sum_chart'));
+			statusSumChart.draw(statusSumData, options);	*/
+	
+			var columnFilter = new google.visualization.ControlWrapper({
+					controlType: 'CategoryFilter',
+					containerId: 'status_control',
+					dataTable: columnsTable,
+					options: {
+							filterColumnLabel: 'colLabel',
+							ui: {
+									label: '',
+									allowTyping: false,
+									allowMultiple: true,
+									selectedValuesLayout: 'aside'
+							}
+					},
+					state: initState
+			});
+
+			google.visualization.events.addListener(columnFilter, 'statechange', function () 
+			{
+					var state = columnFilter.getState();
+					var row;
+					var columnIndices = [0];
+					for (var i = 0; i < state.selectedValues.length; i++) 
+					{
+							row = columnsTable.getFilteredRows([{column: 1, value: state.selectedValues[i]}])[0];
+							columnIndices.push(columnsTable.getValue(row, 0));
+					}
+					// sort the indices into their original order
+					columnIndices.sort(function (a, b) {
+							return (a - b);
+					});
+					tempChart.setView({columns: columnIndices});
+					tempChart.draw();
+			});
+
+			columnFilter.draw();			
+		}
+			function createArray(csvString)
+			{
+			  linesArray =	csvString.split('\n');
+			  //console.log(linesArray.length);
+			  var dataArray = new Array(linesArray.length);
+				for ( var i = 0; i < linesArray.length; i++)
+				{
+					//get our line, 
+					//and split into cells
+					line = linesArray[i];
+					cells = line.split(',');
+						
+					//ignore bad lines
+					if(cells.length != 11)
+						continue;
+					
+					//ignore the header
+					if( i == 0 )
+						continue;
+					
+					//console.log(linesArray[i]);
+					//create some entries
+					dataArray[i] = [];
+					
+					//build up our date
+					hour = cells[3];
+					minutes = cells[4];
+					
+					//round to the nearest half hour
+					if (minutes < 15) {
+					minutes = "00";
+					} else if (minutes < 45){
+					minutes = "30";
+					} else {
+					minutes = "00";
+					++hour;
+					}
+	
+					var date = new Date(cells[0], cells[1]-1, cells[2], hour, minutes);
+					//console.log(date.toDateString());
+					
+					dataArray[i][0] = date;
+					dataArray[i][1] = parseFloat(cells[5].trim());
+					dataArray[i][2] = parseFloat(cells[6].trim());
+					dataArray[i][3] = parseFloat(cells[7].trim());
+					dataArray[i][4] = parseFloat(cells[8].trim());
+					dataArray[i][5] = cells[9].trim();
+					dataArray[i][6] = parseFloat(cells[10].trim());
+				}
+				
+				return dataArray;
+			}
+	
+			function dayArray(startDate, endDate, array)
+			{
+				var data = new google.visualization.DataTable();
+				// Declare columns
+				data.addColumn('datetime', 'Time');
+				data.addColumn('number', 'Outdoor Temp');
+				data.addColumn('number', 'Indoor Temp');
+				data.addColumn('number', 'Humidity');
+				data.addColumn('number', 'Min');
+				data.addColumn('number', 'Max');
+				data.addRows(array.length);
+				
+				//console.log(array);
+				for ( var i = 1; i < array.length-1; i++)
+				{
+					if( array[i][0] >= startDate && array[i][0] <= endDate )
+					{												
+						var date = new Date(array[i][0].getFullYear(), array[i][0].getMonth(), array[i][0].getDate(), array[i][0].getHours(), array[i][0].getMinutes());
+						//console.log(date);
+						data.setCell(i, 0, date);
+						data.setCell(i, 1, array[i][6]);						
+						data.setCell(i, 2, array[i][1]);
+						data.setCell(i, 3, array[i][2]);
+						data.setCell(i, 4, array[i][3]);
+						data.setCell(i, 5, array[i][4]);						
+					}
+					
+				}
+				return data;
+			}
+			function statusArray(startDate, endDate, array)
+			{
+				var data = new google.visualization.DataTable();
+				// Declare columns
+				data.addColumn('datetime', 'Time');
+				data.addColumn('number', 'Idle');
+				data.addColumn('number', 'Heating');
+				data.addColumn('number', 'Cooling');
+				data.addRows(array.length);
+				
+				//console.log(array);
+				for ( var i = 1; i < array.length-1; i++)
+				{
+					if( array[i][0] >= startDate && array[i][0] <= endDate )
+					{												
+						var date = new Date(array[i][0].getFullYear(), array[i][0].getMonth(), array[i][0].getDate(), array[i][0].getHours(), array[i][0].getMinutes());
+						//console.log(date);
+						data.setCell(i, 0, date);
+
+						//Idle
+						if( array[i][5] == "0" )
+							data.setCell(i, 1, 1);
+						else
+							data.setCell(i, 1, 0);
+						
+						//Heating
+						if( array[i][5] == "1" )
+							data.setCell(i, 2, 1);
+						else
+							data.setCell(i, 2, 0);
+
+						//Cooling
+						if( array[i][5] == "2" )
+							data.setCell(i, 3, 1);
+						else
+							data.setCell(i, 3, 0);
+					}
+					
+				}
+				return data;
+			}
+
+			function statusSumArray(startDate, endDate, array)
+			{
+				var data = new google.visualization.DataTable();
+				// Declare columns
+				data.addColumn('string', 'Status');
+				data.addColumn('number', 'Hours');
+				data.addRows(3);
+
+				heating = 0;
+				cooling = 0;
+				idle = 0;
+				
+				for ( var i = 1; i < array.length-1; i++)
+				{
+					if( array[i][0] >= startDate && array[i][0] <= endDate )
+					{						
+						if( array[i][5] == "0" )
+							idle = idle + 1;
+						if( array[i][5] == "1" )
+							heating = heating + 1;
+						if( array[i][5] == "2" )
+							cooling = cooling + 1;
+					}
+				}
+
+				data.setCell(0, 0, 'heating');
+				data.setCell(1, 0, 'cooling');
+				data.setCell(2, 0, 'idle');
+
+				//console.log("heating: " + heating + ", cooling: " + cooling  + ", idle:" + idle);
+				//convert from 1/2hrs to hrs
+				data.setCell(0, 1, heating/2.0);
+				data.setCell(1, 1, cooling/2.0);
+				data.setCell(2, 1, idle/2.0);
+				
+				return data;			
+			}
+			jQuery(function() {
+				jQuery( "#datepicker-start" ).datepicker(
+				{
+					onSelect: updateStart				
+				}
+				);
+			});
+			jQuery(function() {
+				jQuery( "#datepicker-end" ).datepicker(
+				{		
+					onSelect: updateEnd
+				}
+				);
+			});	
+			function updateStart(curDate, instance)
+			{
+				startDate = new Date(curDate);
+				drawChart();			
+			}
+			function updateEnd(curDate, instance)
+			{
+				endDate = new Date(curDate);
+				drawChart();			
+			}
+			
+		</script>
+	</head>
+	<body>	
+		<div id="main">
+		<div id="date_items">
+			<input type="text" id="datepicker-start"> - <input type="text" id="datepicker-end">
+		</div>
+
+		<div id="button_items">
+				<div id="dayButton" class="flat-button">Day</div>
+				<div id="weekButton" class="flat-button">Week</div>
+				<div id="monthButton" class="flat-button">Month</div>
+			</div>
+
+		<div id="button_items">
+			<div id="prevButton" class="flat-button"><<</div>
+			<div id="reset" class="flat-button">0</div>
+			<div id="nextButton" class="flat-button">>></div>
+		</div>
+
+
+		<div id="item">
+			<div id="status_chart"></div>
+			<div id="status_sum_chart"></div>
+		</div>
+
+		<div id="item_chart">
+			<div id="temp_chart"></div>
+			<div id="status_control"></div>
+		</div>
+
+		</div>
+		
+	</body>
+</html>

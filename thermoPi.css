@@ -1,0 +1,112 @@
+body {
+	font-family: 'Open Sans', serif;
+	background-color:black;
+	color: white;	
+}
+
+#main {
+	position: absolute;
+	top:0.5%;
+	bottom: 0.5%;
+	left: 0.5%;
+	right: 0.5%;	
+	margin: auto;
+}
+
+#item {
+	display: block;	
+}
+#item_chart{
+	display: block;	
+	height:60%;
+}
+
+#button_items{
+	display: flex;	
+	flex-grow:2;
+	padding: 2vw;
+	justify-content: center;
+	align-items: center;	
+}
+
+#temp_chart {
+	width:100%;
+	height:100%;
+	margin: auto;
+}
+
+#date_items, #status_control, #status_chart{
+	width:100%;
+	margin: auto;
+	text-align: center;	
+} 
+input[type="text"] {
+	font-family: 'Open Sans', serif;
+	text-align: center;	
+	width: auto;
+	background-color:black;
+	color: white;	
+	font-size: 18px;
+	border:0px solid;
+	resize:horizontal;
+	appearance: none;
+	box-shadow: none;
+	border-radius: none;
+}
+input[type="text"]:focus {
+  outline: none;
+}
+.flat-button {
+  font-size:14px;
+  font-weight: bold;
+  text-align: center;
+  vertical-align: middle;
+  padding:10px;
+  color:white;
+  border:1px solid;
+  border-color:#eee;
+  background-color: #444;
+	height:25px;
+	vertical-align: middle;
+	border-radius: 5px;
+	line-height:25px;
+  outline: none;
+}
+
+.flat-button:active {
+  color:darkgrey;
+  border-color:darkgrey;
+ }
+ 
+/** CategoryFilter **/
+.google-visualization-controls-categoryfilter .charts-menu-button,
+.google-visualization-controls-categoryfilter .charts-menu-button.charts-menu-button-hover,
+.google-visualization-controls-categoryfilter .charts-menu-button.charts-menu-button-active {
+	color:#444;
+	border:1px solid rgba(0,0,0,0.1);
+	background:none;
+	background:#f5f5f5;
+}
+.google-visualization-controls-categoryfilter LI{
+	background-color:#000!important;
+	color:#FFF;
+	height:25px;
+	vertical-align: middle;
+	border-radius: 5px;
+	line-height:25px;
+
+	}
+
+/* CategoryFilter & csvFilter hovered item in the dropdown */
+.charts-menuitem-highlight {
+	background-color:#aaa!important;
+	border-color:#aaa!important;
+	color:#fff;
+}
+.google-visualization-controls-categoryfilter LI {
+  background-color: #333!important;
+}
+
+.google-visualization-controls-categoryfilter .charts-menu-inner-box {
+background-color: #fff!important;
+}
