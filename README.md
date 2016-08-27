@@ -33,3 +33,7 @@ It has the ability to see daily, weekly and monthly reports including the abilit
 Day view shown below:
 
 ![ScreenShot](thermoPi.png)
+
+# Credits
+
+cat brain - http://www.iwasdot.com/extending-a-lennox-icomfort-thermostat-part-2/
